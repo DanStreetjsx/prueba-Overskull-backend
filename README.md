@@ -1,59 +1,131 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Backend – API de productos y categorías
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API REST en Laravel 12 para gestionar productos y categorías, con auditoría de operaciones y documentación Swagger.
 
-## About Laravel
+## Tecnologías
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 12 (PHP ^8.2) – API REST
+- MySQL – base de datos
+- Docker Compose (Laravel Sail) – contenedores
+- L5-Swagger – documentación OpenAPI
+- Spatie Activitylog – auditoría de create/update/delete
+- Vue 3 – frontend (carpeta `../frontend-prueba`)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requisitos funcionales cubiertos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Auditoría de toda acción create/update/delete.
+- Endpoints documentados con Swagger (atributos `OpenApi\Attributes`).
+- Validación de inputs y respuestas JSON estandarizadas (`success`, `message`, `errors`).
+- Código separado por responsabilidades (controllers, modelos, documentación en `app/OpenApi`).
 
-## Learning Laravel
+## Puesta en marcha
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Requisitos: [Docker](https://www.docker.com/) con Docker Compose. Todos los comandos se ejecutan dentro de la carpeta `backend`.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 1. Variables de entorno
 
-## Laravel Sponsors
+```sh
+cp .env.example .env
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Para usar MySQL del contenedor, deja estos valores en el `.env`:
 
-### Premium Partners
+```env
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=sail
+DB_PASSWORD=password
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 2. Instalar dependencias de PHP
 
-## Contributing
+```sh
+docker run --rm -v "${PWD}:/app" -w /app composer:2 composer install --no-scripts
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 3. Levantar los contenedores
 
-## Code of Conduct
+```sh
+docker compose up -d --build
+docker compose ps
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 4. Inicializar la aplicación
 
-## Security Vulnerabilities
+```sh
+docker compose exec laravel.test php artisan key:generate
+docker compose exec laravel.test php artisan migrate
+docker compose exec laravel.test php artisan db:seed
+docker compose exec laravel.test php artisan l5-swagger:generate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 5. Comprobar
 
-## License
+| Recurso       | URL                                      |
+| ------------- | ---------------------------------------- |
+| API           | <http://localhost/api>                   |
+| Swagger UI    | <http://localhost/api/documentation>     |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+La app usa el puerto `80` por defecto. Para cambiarlo, define `APP_PORT` en el `.env` (y ajusta `VITE_API_URL` en el frontend).
+
+## Endpoints
+
+Base: `/api`
+
+| Método       | Ruta                  | Descripción                          |
+| ------------ | --------------------- | ------------------------------------ |
+| GET          | `/categories`         | Listar categorías                    |
+| POST         | `/categories`         | Crear categoría                      |
+| GET          | `/categories/{id}`    | Ver categoría con sus productos      |
+| PUT / PATCH  | `/categories/{id}`    | Actualizar categoría                 |
+| DELETE       | `/categories/{id}`    | Eliminar (409 si tiene productos)    |
+| GET          | `/products`           | Listar paginado (`category_id`, `search`, `page`) |
+| POST         | `/products`           | Crear producto                       |
+| GET          | `/products/{id}`      | Ver producto                         |
+| PUT / PATCH  | `/products/{id}`      | Actualizar producto                  |
+| DELETE       | `/products/{id}`      | Eliminar producto                    |
+
+### Formato de error
+
+Los errores de validación devuelven `422`:
+
+```json
+{
+  "success": false,
+  "message": "El campo 'name' es obligatorio",
+  "errors": {
+    "name": ["El campo nombre es requerido"]
+  }
+}
+```
+
+Un recurso inexistente devuelve `404` con `{ "success": false, "message": "Recurso no encontrado" }`.
+
+## Estructura relevante
+
+```
+app/
+├── Http/Controllers/   # CategoryController, ProductController
+├── Models/             # Category, Product (con auditoría)
+└── OpenApi/            # Documentation.php (info, servidor y esquema ErrorResponse)
+bootstrap/app.php       # rutas API y respuestas de error personalizadas
+routes/api.php          # endpoints CRUD
+database/               # migraciones y seeders
+```
+
+## Comandos útiles
+
+```sh
+docker compose logs -f laravel.test                       # ver logs
+docker compose exec laravel.test php artisan migrate:fresh --seed   # reiniciar la base de datos
+docker compose exec laravel.test php artisan route:list   # listar rutas
+docker compose down                                       # apagar contenedores
+```
+
+Después de cambiar anotaciones Swagger, vuelve a ejecutar `php artisan l5-swagger:generate`.
+
+## Frontend
+
+Ver [../frontend-prueba/README.md](../frontend-prueba/README.md).
